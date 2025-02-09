@@ -24,6 +24,7 @@ type Article struct {
 
 type Company struct {
 	ID     string
+	GROWWCOMPANYID string
 	APIURL string
 }
 
@@ -37,7 +38,7 @@ func main() {
 	defer db.Close()
 
 	// Get all companies with api_url
-	rows, err := db.Query("SELECT id, api_url FROM companies")
+	rows, err := db.Query("SELECT id, groww_company_id ,api_url FROM companies")
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -46,7 +47,7 @@ func main() {
 	// Iterate over each company and fetch data
 	for rows.Next() {
 		var company Company
-		if err := rows.Scan(&company.ID, &company.APIURL); err != nil {
+		if err := rows.Scan(&company.ID, &company.GROWWCOMPANYID, &company.APIURL); err != nil {
 			log.Fatal(err)
 		}
 
@@ -61,7 +62,7 @@ func main() {
 		for _, article := range articles {
 			// Check if the article already exists
 			var exists bool
-			err := db.QueryRow("SELECT EXISTS(SELECT 1 FROM stock_articles WHERE id = $1)", article.ID).Scan(&exists)
+			err := db.QueryRow("SELECT EXISTS(SELECT 1 FROM stock_article WHERE id = $1)", article.ID).Scan(&exists)
 			if err != nil {
 				log.Printf("Error checking article existence for %s: %v", article.ID, err)
 				continue
@@ -70,9 +71,9 @@ func main() {
 			if !exists {
 				// Insert article data
 				_, err := db.Exec(`
-					INSERT INTO stock_articles (id, title, summary, url, pub_date, source, created_at, updated_at)
-					VALUES ($1, $2, $3, $4, $5, $6, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)`,
-					article.ID, article.Title, article.Summary, article.URL, article.PubDate, article.Source)
+					INSERT INTO stock_article (id, title, summary, url, pub_date, source, created_at, updated_at, company_id, groww_company_id)
+					VALUES ($1, $2, $3, $4, $5, $6, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP,$7 ,$8)`,
+					article.ID, article.Title, article.Summary, article.URL, article.PubDate, article.Source,company.ID,company.GROWWCOMPANYID)
 				if err != nil {
 					log.Printf("Error inserting article %s: %v", article.ID, err)
 				}
